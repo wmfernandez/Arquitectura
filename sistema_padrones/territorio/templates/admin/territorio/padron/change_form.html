@@ -1,0 +1,94 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+/* CSS adicional si fuera necesario */
+</style>
+<script>
+    console.log("Template de Padron Change Form cargado");
+    document.addEventListener("DOMContentLoaded", function() {
+        const checkOL = setInterval(function() {
+            if (typeof ol !== 'undefined' && document.querySelector('.dj_map')) {
+                clearInterval(checkOL);
+                console.log("OpenLayers detectado, inyectando estilos...");
+                
+                if (!window._olMapPatched) {
+                    window._olMapPatched = true;
+                    
+                    // Buscar los MapWidget cargados por Django
+                    setTimeout(() => {
+                        // Iteramos sobre todos los canvas de OpenLayers
+                        const maps = document.querySelectorAll('.dj_map');
+                        if(maps.length > 0) {
+                            // Parche global directo a ol.Map.prototype.addLayer
+                            const originalAddLayer = ol.Map.prototype.addLayer;
+                            ol.Map.prototype.addLayer = function(layer) {
+                                originalAddLayer.call(this, layer);
+                                if (layer instanceof ol.layer.Vector) {
+                                    const numInput = document.getElementById('id_numero_padron');
+                                    if (numInput) {
+                                        const setStyleFn = () => {
+                                            layer.setStyle(function(feature) {
+                                                return new ol.style.Style({
+                                                    fill: new ol.style.Fill({ color: 'rgba(113, 174, 220, 0.8)' }),
+                                                    stroke: new ol.style.Stroke({ color: '#1e3f66', width: 2 }),
+                                                    text: new ol.style.Text({
+                                                        text: numInput.value || '',
+                                                        font: 'bold 16px Arial',
+                                                        fill: new ol.style.Fill({ color: '#ffffff' }),
+                                                        stroke: new ol.style.Stroke({ color: '#000000', width: 3 }),
+                                                        overflow: true,
+                                                        placement: 'point'
+                                                    })
+                                                });
+                                            });
+                                        };
+                                        setStyleFn();
+                                        numInput.addEventListener('input', () => { setStyleFn(); layer.changed(); });
+                                    }
+                                }
+                            };
+                            
+                            // Re-inicializamos o forzamos repintado de las capas existentes
+                            // Esto cubre el caso en el que addLayer ya ocurrió antes de nuestro parche
+                            const allCanvases = document.querySelectorAll('.ol-layer canvas');
+                            if(allCanvases.length > 0) {
+                                // Forzamos una actualización de estilos iterando sobre todos los features
+                                // La forma más robusta sin acceso directo al map: interceptar ol.Feature.prototype.getStyle
+                                const OriginalGetStyle = ol.Feature.prototype.getStyle;
+                                ol.Feature.prototype.getStyleFunction = function() {
+                                    const numInput = document.getElementById('id_numero_padron');
+                                    if(numInput) {
+                                        return function(feature) {
+                                            return new ol.style.Style({
+                                                    fill: new ol.style.Fill({ color: 'rgba(113, 174, 220, 0.8)' }),
+                                                    stroke: new ol.style.Stroke({ color: '#1e3f66', width: 2 }),
+                                                    text: new ol.style.Text({
+                                                        text: numInput.value || '',
+                                                        font: 'bold 16px Arial',
+                                                        fill: new ol.style.Fill({ color: '#ffffff' }),
+                                                        stroke: new ol.style.Stroke({ color: '#000000', width: 3 }),
+                                                        overflow: true,
+                                                        placement: 'point'
+                                                    })
+                                                });
+                                        };
+                                    }
+                                    return OriginalGetStyle ? OriginalGetStyle.call(this) : undefined;
+                                };
+                                
+                                // Simular un clic en el input para forzar redibujado en Django 4
+                                const text = document.getElementById('id_numero_padron');
+                                if(text) {
+                                    text.dispatchEvent(new Event('input', { bubbles: true }));
+                                }
+                            }
+                        }
+                    }, 500);
+                }
+            }
+        }, 100);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,198 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<div id="{{ widget.attrs.id }}_div_map" class="padron_map_wrapper" style="width: 800px; height: 500px; border: 1px solid #ccc; border-radius: 5px; overflow: hidden; position: relative;">
+    <div id="{{ widget.attrs.id }}_map" style="width: 100%; height: 100%; z-index: 1;"></div>
+    
+    <!-- Mantenemos el textarea oculto para que Django lea/guarde el valor si es necesario -->
+    <textarea id="{{ widget.attrs.id }}" class="vSerializedField required" name="{{ widget.name }}" style="display:none;">{{ serialized }}</textarea>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const mapId = '{{ widget.attrs.id }}_map';
+            const textareaId = '{{ widget.attrs.id }}';
+            const numInput = document.getElementById('id_numero_padron');
+            const textarea = document.getElementById(textareaId);
+            
+            // Inicializar mapa Leaflet
+            // Configuramos un centro por defecto (Uruguay)
+            const map = L.map(mapId).setView([-33.0, -56.0], 7);
+            
+            // Agregar capa base de Google Maps (sin restricciones CORS/403 de OSM)
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '© Google'
+            }).addTo(map);
+
+            // Obtener el tipo de padrón del select del formulario de Django
+            const tipoSelect = document.getElementById('id_tipo_padron');
+
+            // Función para determinar el estilo principal según si es Urbano o Rural
+            function getPadronStyle(tipoTexto) {
+                const isUrbano = tipoTexto && tipoTexto.toLowerCase().includes('urbano');
+                if (isUrbano) {
+                    return {
+                        color: "#8c5e34",      // Marrón oscuro (borde)
+                        weight: 2,
+                        fillColor: "#d4a373",  // Marrón claro arena (relleno)
+                        fillOpacity: 0.8
+                    };
+                } else {
+                    return {
+                        color: "#1e3f66",      // Azul oscuro (borde)
+                        weight: 2,
+                        fillColor: "#71aedc",  // Celeste (relleno)
+                        fillOpacity: 0.8
+                    };
+                }
+            }
+
+            let geojsonLayer = null;
+            const vecinosLayer = L.layerGroup().addTo(map);
+
+            // Función para cargar dinámicamente padrones vecinos
+            function cargarVecinos() {
+                // Prevenir sobrecarga de la DB si el mapa está muy alejado
+                if (map.getZoom() < 15) {
+                    vecinosLayer.clearLayers();
+                    return; 
+                }
+                
+                const bounds = map.getBounds();
+                const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+                const padronNum = (numInput && numInput.value) ? numInput.value : '';
+
+                fetch(`/api/padrones_bbox/?bbox=${bboxStr}&exclude=${padronNum}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        vecinosLayer.clearLayers();
+                        
+                        const capaNuevosVecinos = L.geoJSON(data, {
+                            style: function(feature) {
+                                // Pintar el borde del vecino según su tipo real (celeste si rural, marrón claro si urbano)
+                                const isUrbano = feature.properties.tipo && feature.properties.tipo.includes('urbano');
+                                return {
+                                    color: isUrbano ? "#d4a373" : "#71aedc",
+                                    weight: 1.5,           // Grosor
+                                    fillColor: "transparent", // Sin relleno, tal como pidió el usuario
+                                    fillOpacity: 0
+                                };
+                            },
+                            onEachFeature: function(feature, layer) {
+                                if (feature.properties && feature.properties.numero_padron) {
+                                    layer.bindTooltip(String(feature.properties.numero_padron), {
+                                        permanent: false, // Se muestra solo al pasar el mouse (hover)
+                                        direction: 'center',
+                                        className: 'vecino-label'
+                                    });
+                                }
+                            }
+                        });
+                        
+                        vecinosLayer.addLayer(capaNuevosVecinos);
+                        
+                        // Asegurar que el padrón principal siga estando por encima de los vecinos
+                        if (geojsonLayer) {
+                            geojsonLayer.bringToFront();
+                        }
+                    })
+                    .catch(e => console.error("Error al cargar vecinos:", e));
+            }
+
+            // Actualizar vecinos cada vez que se arrastra o se hace zoom en el mapa
+            map.on('moveend', cargarVecinos);
+
+            if (textarea && textarea.value) {
+                try {
+                    // Ahora que usamos BaseGeometryWidget, el valor es GeoJSON puro en EPSG:4326
+                    const geojsonData = JSON.parse('{"type": "Feature", "geometry": ' + textarea.value + '}');
+                    
+                    // Determinar el texto del tipo actual
+                    let tipoTextoInicial = '';
+                    if (tipoSelect && tipoSelect.options.length > 0 && tipoSelect.selectedIndex >= 0) {
+                        tipoTextoInicial = tipoSelect.options[tipoSelect.selectedIndex].text;
+                    }
+                    
+                    // Definir estilo dinámico
+                    const padronStyle = getPadronStyle(tipoTextoInicial);
+                    
+                    // Añadir el GeoJSON al mapa
+                    geojsonLayer = L.geoJSON(geojsonData, {
+                        style: padronStyle
+                    }).addTo(map);
+                    
+                    // Encuadrar el mapa para que el polígono se vea mucho más grande y cercano
+                    map.fitBounds(geojsonLayer.getBounds(), {
+                        padding: [10, 10], // Menos padding para que ocupe más pantalla
+                        maxZoom: 20        // Permitir un zoom mucho mayor (ideal para padrones urbanos pequeños)
+                    });
+
+                    // Cargar vecinos iniciales al terminar de encuadrar
+                    cargarVecinos();
+
+                    // Añadir etiqueta de número de padrón en el centro
+                    const center = geojsonLayer.getBounds().getCenter();
+                    const padronNum = (numInput && numInput.value) ? numInput.value : '';
+                    
+                    if (padronNum) {
+                        L.tooltip({
+                            permanent: true,
+                            direction: 'center',
+                            className: 'padron-label'
+                        })
+                        .setContent(padronNum)
+                        .setLatLng(center)
+                        .addTo(map);
+                    }
+                    
+                    // Reactividad si cambia el número de padrón en el input
+                    if (numInput) {
+                        numInput.addEventListener('input', function() {
+                            map.eachLayer(function(layer) {
+                                if (layer.options && layer.options.className === 'padron-label') {
+                                    layer.setContent(numInput.value);
+                                }
+                            });
+                        });
+                    }
+                    
+                    // Reactividad si el usuario cambia el tipo (Urbano/Rural) en el formulario
+                    if (tipoSelect) {
+                        tipoSelect.addEventListener('change', function() {
+                            const nuevoTipoTexto = tipoSelect.options[tipoSelect.selectedIndex].text;
+                            if (geojsonLayer) {
+                                geojsonLayer.setStyle(getPadronStyle(nuevoTipoTexto));
+                            }
+                        });
+                    }
+
+                } catch (e) {
+                    console.error("Error cargando geometría en Leaflet:", e);
+                }
+            }
+        });
+    </script>
+    <style>
+        .padron-label {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        /* Eliminar el pequeño triángulo del tooltip de Leaflet */
+        .padron-label::before {
+            display: none;
+        }
+        
+        .vecino-label {
+            background: rgba(255,255,255,0.8);
+            border: 1px solid #999;
+            color: #333;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</div>

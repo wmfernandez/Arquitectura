@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  db_padrones:
+    mem_limit: 2g
+    image: postgis/postgis:16-3.4
+    container_name: db_padrones
+    environment:
+      - POSTGRES_USER=admin_padrones
+      - POSTGRES_PASSWORD=secret_padrones
+      - POSTGRES_DB=padrones_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - padrones_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  db_expedientes:
+    mem_limit: 1g
+    image: postgres:16
+    container_name: db_expedientes
+    environment:
+      - POSTGRES_USER=admin_expedientes
+      - POSTGRES_PASSWORD=secret_expedientes
+      - POSTGRES_DB=expedientes_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - expedientes_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  api_padrones:
+    mem_limit: 1g
+    build:
+      context: ./sistema_padrones
+      dockerfile: /Dockerfile
+    container_name: api_padrones
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./sistema_padrones:/app
+    depends_on:
+      - db_padrones
+    restart: unless-stopped
+
+  api_expedientes:
+    mem_limit: 1g
+    build:
+      context: ./sistema_expedientes
+      dockerfile: /Dockerfile
+    container_name: api_expedientes
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./sistema_expedientes:/app
+    depends_on:
+      - db_expedientes
+    restart: unless-stopped
+
+  frontend_portal:
+    mem_limit: 1g
+    build:
+      context: ./portal_profesionales
+      dockerfile: Dockerfile
+    container_name: frontend_portal
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./portal_profesionales:/app
+      - /app/node_modules
+    depends_on:
+      - api_padrones
+    restart: unless-stopped
+
+volumes:
+  padrones_data:
+  expedientes_data:
