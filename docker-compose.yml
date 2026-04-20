@@ -35,9 +35,7 @@ services:
       context: ./sistema_padrones
       dockerfile: Dockerfile
     container_name: api_padrones
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "while ! python manage.py migrate; do echo 'Waiting for DB...'; sleep 2; done; python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     volumes:
@@ -52,9 +50,7 @@ services:
       context: ./sistema_expedientes
       dockerfile: Dockerfile
     container_name: api_expedientes
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "while ! python manage.py migrate; do echo 'Waiting for DB...'; sleep 2; done; python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8001:8000"
     volumes:
