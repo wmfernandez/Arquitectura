@@ -33,7 +33,7 @@ services:
     mem_limit: 1g
     build:
       context: ./sistema_padrones
-      dockerfile: /Dockerfile
+      dockerfile: Dockerfile
     container_name: api_padrones
     ports:
       - "8000:8000"
@@ -47,7 +47,7 @@ services:
     mem_limit: 1g
     build:
       context: ./sistema_expedientes
-      dockerfile: /Dockerfile
+      dockerfile: Dockerfile
     container_name: api_expedientes
     ports:
       - "8001:8000"
