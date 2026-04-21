@@ -22,7 +22,7 @@ export default function Dashboard({ user, onLogout }) {
       
       try {
         // Fetch Profile
-        const perfilRes = await fetch('http://localhost:8000/api/perfil/', {
+        const perfilRes = await fetch('/api/perfil/', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -33,7 +33,7 @@ export default function Dashboard({ user, onLogout }) {
           // If the profile is HABILITADO, we can also try to fetch solicitudes
           if (pData.estado_nombre && pData.estado_nombre.toUpperCase() === 'HABILITADO') {
             try {
-              const solRes = await fetch('http://localhost:8000/api/mis_solicitudes/', {
+              const solRes = await fetch('/api/mis_solicitudes/', {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
               if (solRes.ok) {

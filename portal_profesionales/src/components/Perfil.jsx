@@ -67,7 +67,7 @@ export default function Perfil({ perfilData, onLogout, onBack, onProfileUpdated 
     if (files.foto_reverso) submitData.append('foto_dni_reverso', files.foto_reverso);
 
     try {
-      const response = await fetch('http://localhost:8000/api/perfil/', {
+      const response = await fetch('/api/perfil/', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

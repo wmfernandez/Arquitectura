@@ -37,7 +37,7 @@ export default function NuevaSolicitud({ onBack, token }) {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/form_options/');
+        const response = await fetch('/api/form_options/');
         if (response.ok) {
           const data = await response.json();
           setOpciones(prev => ({
@@ -76,7 +76,7 @@ export default function NuevaSolicitud({ onBack, token }) {
       if (searchParams.tipo_id) params.append('tipo_id', searchParams.tipo_id);
       if (isUrbano && searchParams.localidad) params.append('localidad', searchParams.localidad);
 
-      const response = await fetch(`http://localhost:8000/api/padron/buscar/?${params.toString()}`, {
+      const response = await fetch(`/api/padron/buscar/?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -358,7 +358,7 @@ export default function NuevaSolicitud({ onBack, token }) {
               formData.append('archivos', archivoTecnico[i]);
             }
 
-            const response = await fetch('http://localhost:8000/api/solicitudes/enviar/', {
+            const response = await fetch('/api/solicitudes/enviar/', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`

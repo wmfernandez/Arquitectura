@@ -33,7 +33,7 @@ export default function Registro() {
 
   React.useEffect(() => {
     // Fetch Términos
-    fetch('http://localhost:8000/api/configuracion-portal/')
+    fetch('/api/configuracion-portal/')
       .then(res => res.json())
       .then(data => {
         if (data.terminos_y_condiciones) {
@@ -47,7 +47,7 @@ export default function Registro() {
       });
 
     // Fetch Profesiones
-    fetch('http://localhost:8000/api/profesiones/')
+    fetch('/api/profesiones/')
       .then(res => res.json())
       .then(data => {
         setProfesiones(data);
@@ -106,7 +106,7 @@ export default function Registro() {
     }
     
     try {
-      const response = await fetch('http://localhost:8000/api/registro-profesional/', {
+      const response = await fetch('/api/registro-profesional/', {
         method: 'POST',
         body: payload
       });

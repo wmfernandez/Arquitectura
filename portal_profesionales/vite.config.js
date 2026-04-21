@@ -8,5 +8,11 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    proxy: {
+      '/api': {
+        target: 'http://api_padrones:8000',
+        changeOrigin: true,
+      }
+    }
   },
 })
