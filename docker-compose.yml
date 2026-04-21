@@ -6,9 +6,9 @@ services:
     image: postgis/postgis:16-3.4
     container_name: db_padrones
     environment:
-      - POSTGRES_USER=admin_padrones
-      - POSTGRES_PASSWORD=secret_padrones
-      - POSTGRES_DB=padrones_db
+      - POSTGRES_USER=${POSTGRES_USER_PADRONES}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_PADRONES}
+      - POSTGRES_DB=${POSTGRES_DB_PADRONES}
     ports:
       - "5432:5432"
     volumes:
@@ -20,9 +20,9 @@ services:
     image: postgres:16
     container_name: db_expedientes
     environment:
-      - POSTGRES_USER=admin_expedientes
-      - POSTGRES_PASSWORD=secret_expedientes
-      - POSTGRES_DB=expedientes_db
+      - POSTGRES_USER=${POSTGRES_USER_EXPEDIENTES}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_EXPEDIENTES}
+      - POSTGRES_DB=${POSTGRES_DB_EXPEDIENTES}
     ports:
       - "5433:5432"
     volumes:
@@ -38,6 +38,8 @@ services:
     command: sh -c "while ! python manage.py migrate; do echo 'Waiting for DB...'; sleep 2; done; python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     volumes:
       - ./sistema_padrones:/app
     depends_on:
@@ -53,6 +55,8 @@ services:
     command: sh -c "while ! python manage.py migrate; do echo 'Waiting for DB...'; sleep 2; done; python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8001:8000"
+    env_file:
+      - .env
     volumes:
       - ./sistema_expedientes:/app
     depends_on:
@@ -67,6 +71,8 @@ services:
     container_name: frontend_portal
     ports:
       - "5173:5173"
+    env_file:
+      - .env
     volumes:
       - ./portal_profesionales:/app
       - /app/node_modules

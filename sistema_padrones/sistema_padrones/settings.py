@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-4h6z5pk=on@+4$d7vh7f+owj34m-kciv6sds3^=jthv!a=_g@s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -87,11 +88,11 @@ WSGI_APPLICATION = 'sistema_padrones.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'padrones_db',
-        'USER': 'admin_padrones',
-        'PASSWORD': 'secret_padrones',
-        'HOST': 'db_padrones',
-        'PORT': '5432',
+        'NAME': os.getenv('POSTGRES_DB_PADRONES', 'padrones_db'),
+        'USER': os.getenv('POSTGRES_USER_PADRONES', 'admin_padrones'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD_PADRONES', 'secret_padrones'),
+        'HOST': os.getenv('POSTGRES_HOST_PADRONES', 'db_padrones'),
+        'PORT': os.getenv('POSTGRES_PORT_PADRONES', '5432'),
     }
 }
 
@@ -161,3 +162,5 @@ SIMPLE_JWT = {
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'no-reply@portalprofesionales.com'
 
+
+API_EXPEDIENTES_URL = os.getenv('API_EXPEDIENTES_URL', 'http://api_expedientes:8000/api/recibir-solicitud/')

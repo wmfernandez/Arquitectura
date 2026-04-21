@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.gis.db import models
 from usuarios.models import Profesional
 from simple_history.models import HistoricalRecords
@@ -119,7 +120,7 @@ class Solicitud(models.Model):
         if enviar_a_expedientes and not self.numero_expediente_generado:
             try:
                 # Docker network URL
-                url = 'http://api_expedientes:8000/api/recibir-solicitud/'
+                url = getattr(settings, 'API_EXPEDIENTES_URL', 'http://api_expedientes:8000/api/recibir-solicitud/')
                 payload = {
                     "padron_referencia": str(self.padron.numero_padron),
                     "solicitante_referencia": str(self.profesional.matricula),
