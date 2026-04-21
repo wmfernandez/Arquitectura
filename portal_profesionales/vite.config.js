@@ -11,7 +11,10 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://api_padrones:8000',
-        changeOrigin: true,
+        changeOrigin: false,
+        headers: {
+          'Host': 'localhost'
+        }
       }
     }
   },
